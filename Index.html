@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2026/27 European Football & Corner Kick Tracker</title>
+  <style>
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-secondary: #111827;
+      --bg-card: #161f32;
+      --bg-card-hover: #1e2942;
+      --border: #26324d;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --accent: #3b82f6;
+      --accent-glow: rgba(59, 130, 246, 0.25);
+      --ucl-gold: #eab308;
+      --ucl-bg: rgba(234, 179, 8, 0.14);
+      --win: #10b981;
+      --draw: #f59e0b;
+      --loss: #ef4444;
+      --corner-badge: #8b5cf6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      line-height: 1.5;
+      padding-bottom: 3rem;
+    }
+
+    /* Header */
+    header {
+      background: linear-gradient(180deg, #131c31 0%, var(--bg-primary) 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 1.5rem 1rem 1rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    .header-top {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .live-pill {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--win);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      align-items: center;
+    }
+
+    input[type="text"] {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 0.5rem 0.85rem;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      min-width: 210px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--accent);
+    }
+
+    .btn-toggle {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 0.5rem 0.85rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-toggle.active-ucl {
+      background: var(--ucl-bg);
+      color: var(--ucl-gold);
+      border-color: rgba(234, 179, 8, 0.5);
+    }
+
+    /* League Tabs */
+    .league-tabs {
+      display: flex;
+      gap: 0.45rem;
+      overflow-x: auto;
+      padding-bottom: 0.35rem;
+      scrollbar-width: thin;
+    }
+
+    .league-tabs::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    .league-tabs::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+
+    .tab-btn {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 0.42rem 0.8rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+      border-color: #3b4d75;
+    }
+
+    .tab-btn.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    /* Summary Strip */
+    .summary-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 0.75rem;
+      margin: 1.25rem 1rem 0;
+    }
+
+    .stat-box {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.8rem 1rem;
+    }
+
+    .stat-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+    }
+
+    .stat-value {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-top: 0.15rem;
+    }
+
+    /* League Section */
+    main {
+      padding: 0 1rem;
+    }
+
+    .league-section {
+      margin-top: 2rem;
+    }
+
+    .league-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.85rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .league-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+    }
+
+    .league-meta {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    /* Team Grid */
+    .team-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      gap: 0.85rem;
+    }
+
+    .team-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+      transition: transform 0.15s, border-color 0.15s;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .team-card:hover {
+      transform: translateY(-2px);
+      border-color: #3d5280;
+      background: var(--bg-card-hover);
+    }
+
+    .team-card.ucl-team {
+      border-left: 3px solid var(--ucl-gold);
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .team-name {
+      font-weight: 700;
+      font-size: 0.98rem;
+      color: #fff;
+    }
+
+    .ucl-tag {
+      font-size: 0.65rem;
+      font-weight: 700;
+      background: var(--ucl-bg);
+      color: var(--ucl-gold);
+      border: 1px solid rgba(234, 179, 8, 0.4);
+      padding: 0.15rem 0.45rem;
+      border-radius: 5px;
+      white-space: nowrap;
+    }
+
+    .match-box {
+      background: rgba(11, 15, 25, 0.65);
+      border: 1px solid rgba(38, 50, 77, 0.7);
+      border-radius: 8px;
+      padding: 0.6rem 0.75rem;
+      font-size: 0.83rem;
+    }
+
+    .match-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .outcome-pill {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.12rem 0.45rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .outcome-W { background: rgba(16, 185, 129, 0.18); color: var(--win); }
+    .outcome-D { background: rgba(245, 158, 11, 0.18); color: var(--draw); }
+    .outcome-L { background: rgba(239, 68, 68, 0.18); color: var(--loss); }
+
+    .corner-box {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 0.55rem;
+      border-top: 1px dashed var(--border);
+      font-size: 0.8rem;
+    }
+
+    .corner-label {
+      color: var(--text-muted);
+    }
+
+    .corner-stats {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-weight: 600;
+    }
+
+    .corner-pill {
+      background: rgba(139, 92, 246, 0.18);
+      color: #c4b5fd;
+      border: 1px solid rgba(139, 92, 246, 0.35);
+      padding: 0.15rem 0.5rem;
+      border-radius: 6px;
+      font-size: 0.78rem;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 3rem;
+      padding: 0 1rem;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+    }
+
+    @media (max-width: 600px) {
+      h1 { font-size: 1.12rem; }
+      input[type="text"] { width: 100%; }
+      .team-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <div class="header-top">
+      <h1>⚽ 2026/27 Match & Corner Kick Hub <span class="live-pill">Updated Nov 24, 2026</span></h1>
+      <div class="controls">
+        <input type="text" id="searchInput" placeholder="Search team or league..." />
+        <button class="btn-toggle" id="uclToggle">🏆 UCL 26/27 Teams Only</button>
+      </div>
+    </div>
+    <div class="league-tabs" id="leagueTabs"></div>
+  </div>
+</header>
+
+<div class="container">
+  <div class="summary-bar" id="summaryBar"></div>
+  <main id="leaguesContainer"></main>
+</div>
+
+<footer>
+  Data compiled from FotMob & Official 2026/27 League Matchlogs (Last Completed Matchday + 2026/27 Season Corner Kicks).
+</footer>
+
+<script>
+  const LEAGUES_DATA = [
+    {
+      id: "epl",
+      name: "Premier League",
+      country: "England",
+      flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+      matchday: "Matchweek 11 (Nov 21–23, 2026)",
+      teams: [
+        { name: "Arsenal", ucl: true, lastMatch: "2-2 vs Newcastle (A)", res: "D", cornersTotal: 59, cornersAvg: 5.36 },
+        { name: "Manchester City", ucl: true, lastMatch: "1-1 vs Fulham (H)", res: "D", cornersTotal: 69, cornersAvg: 6.27 },
+        { name: "Liverpool", ucl: true, lastMatch: "4-0 vs Man United (H)", res: "W", cornersTotal: 52, cornersAvg: 4.73 },
+        { name: "Aston Villa", ucl: true, lastMatch: "0-0 vs Sunderland (H)", res: "D", cornersTotal: 41, cornersAvg: 3.73 },
+        { name: "Manchester United", ucl: true, lastMatch: "0-4 vs Liverpool (A)", res: "L", cornersTotal: 63, cornersAvg: 5.73 },
+        { name: "Tottenham Hotspur", ucl: false, lastMatch: "2-0 vs Ipswich Town (H)", res: "W", cornersTotal: 83, cornersAvg: 7.55 },
+        { name: "Fulham", ucl: false, lastMatch: "1-1 vs Man City (A)", res: "D", cornersTotal: 65, cornersAvg: 5.91 },
+        { name: "Chelsea", ucl: false, lastMatch: "1-4 vs Leeds United (H)", res: "L", cornersTotal: 58, cornersAvg: 5.27 },
+        { name: "AFC Bournemouth", ucl: false, lastMatch: "2-0 vs Nottm Forest (H)", res: "W", cornersTotal: 54, cornersAvg: 4.91 },
+        { name: "Brighton & Hove Albion", ucl: false, lastMatch: "0-2 vs Hull City (A)", res: "L", cornersTotal: 51, cornersAvg: 4.64 },
+        { name: "Newcastle United", ucl: false, lastMatch: "2-2 vs Arsenal (H)", res: "D", cornersTotal: 49, cornersAvg: 4.45 },
+        { name: "Nottingham Forest", ucl: false, lastMatch: "0-2 vs Bournemouth (A)", res: "L", cornersTotal: 49, cornersAvg: 4.45 },
+        { name: "Everton", ucl: false, lastMatch: "0-4 vs Brentford (A)", res: "L", cornersTotal: 46, cornersAvg: 4.18 },
+        { name: "Leeds United", ucl: false, lastMatch: "4-1 vs Chelsea (A)", res: "W", cornersTotal: 45, cornersAvg: 4.09 },
+        { name: "Sunderland", ucl: false, lastMatch: "0-0 vs Aston Villa (A)", res: "D", cornersTotal: 42, cornersAvg: 3.82 },
+        { name: "Hull City", ucl: false, lastMatch: "2-0 vs Brighton (H)", res: "W", cornersTotal: 41, cornersAvg: 3.73 },
+        { name: "Coventry City", ucl: false, lastMatch: "3-2 vs Crystal Palace (H)", res: "W", cornersTotal: 40, cornersAvg: 3.64 },
+        { name: "Brentford", ucl: false, lastMatch: "4-0 vs Everton (H)", res: "W", cornersTotal: 39, cornersAvg: 3.55 },
+        { name: "Crystal Palace", ucl: false, lastMatch: "2-3 vs Coventry City (A)", res: "L", cornersTotal: 39, cornersAvg: 3.55 },
+        { name: "Ipswich Town", ucl: false, lastMatch: "0-2 vs Tottenham (A)", res: "L", cornersTotal: 34, cornersAvg: 3.09 }
+      ]
+    },
+    {
+      id: "laliga",
+      name: "La Liga",
+      country: "Spain",
+      flag: "🇪🇸",
+      matchday: "Matchday 13 (Nov 20–23, 2026)",
+      teams: [
+        { name: "Real Madrid", ucl: true, lastMatch: "2-1 vs Celta Vigo (H)", res: "W", cornersTotal: 83, cornersAvg: 6.38 },
+        { name: "FC Barcelona", ucl: true, lastMatch: "3-2 vs Villarreal (H)", res: "W", cornersTotal: 87, cornersAvg: 6.69 },
+        { name: "Atlético Madrid", ucl: true, lastMatch: "3-0 vs Getafe (A)", res: "W", cornersTotal: 74, cornersAvg: 5.69 },
+        { name: "Villarreal", ucl: true, lastMatch: "2-3 vs Barcelona (A)", res: "L", cornersTotal: 89, cornersAvg: 6.85 },
+        { name: "Real Betis", ucl: true, lastMatch: "1-1 vs Sevilla (A)", res: "D", cornersTotal: 67, cornersAvg: 5.15 },
+        { name: "Real Sociedad", ucl: false, lastMatch: "2-3 vs Racing Santander (A)", res: "L", cornersTotal: 94, cornersAvg: 7.23 },
+        { name: "Athletic Club", ucl: false, lastMatch: "0-1 vs Espanyol (H)", res: "L", cornersTotal: 74, cornersAvg: 5.69 },
+        { name: "Rayo Vallecano", ucl: false, lastMatch: "0-1 vs Valencia (H)", res: "L", cornersTotal: 67, cornersAvg: 5.15 },
+        { name: "Deportivo La Coruña", ucl: false, lastMatch: "1-3 vs Alavés (A)", res: "L", cornersTotal: 66, cornersAvg: 5.08 },
+        { name: "Racing Santander", ucl: false, lastMatch: "3-2 vs Real Sociedad (H)", res: "W", cornersTotal: 65, cornersAvg: 5.00 },
+        { name: "Málaga CF", ucl: false, lastMatch: "0-1 vs Osasuna (A)", res: "L", cornersTotal: 62, cornersAvg: 4.77 },
+        { name: "Elche CF", ucl: false, lastMatch: "1-1 vs Levante (A)", res: "D", cornersTotal: 59, cornersAvg: 4.54 },
+        { name: "Deportivo Alavés", ucl: false, lastMatch: "3-1 vs Deportivo (H)", res: "W", cornersTotal: 56, cornersAvg: 4.31 },
+        { name: "Valencia CF", ucl: false, lastMatch: "1-0 vs Rayo Vallecano (A)", res: "W", cornersTotal: 51, cornersAvg: 3.92 },
+        { name: "Getafe CF", ucl: false, lastMatch: "0-3 vs Atlético Madrid (H)", res: "L", cornersTotal: 50, cornersAvg: 3.85 },
+        { name: "CA Osasuna", ucl: false, lastMatch: "1-0 vs Málaga (H)", res: "W", cornersTotal: 48, cornersAvg: 3.69 },
+        { name: "Sevilla FC", ucl: false, lastMatch: "1-1 vs Real Betis (H)", res: "D", cornersTotal: 48, cornersAvg: 3.69 },
+        { name: "Celta Vigo", ucl: false, lastMatch: "1-2 vs Real Madrid (A)", res: "L", cornersTotal: 40, cornersAvg: 3.08 },
+        { name: "Levante UD", ucl: false, lastMatch: "1-1 vs Elche (H)", res: "D", cornersTotal: 40, cornersAvg: 3.08 },
+        { name: "RCD Espanyol", ucl: false, lastMatch: "1-0 vs Athletic Club (A)", res: "W", cornersTotal: 39, cornersAvg: 3.00 }
+      ]
+    },
+    {
+      id: "seriea",
+      name: "Serie A",
+      country: "Italy",
+      flag: "🇮🇹",
+      matchday: "Matchday 12 (Nov 21–23, 2026)",
+      teams: [
+        { name: "Inter Milan", ucl: true, lastMatch: "4-4 vs Atalanta (A)", res: "D", cornersTotal: 67, cornersAvg: 5.58 },
+        { name: "SSC Napoli", ucl: true, lastMatch: "1-0 vs Torino (H)", res: "W", cornersTotal: 59, cornersAvg: 4.92 },
+        { name: "AS Roma", ucl: true, lastMatch: "5-1 vs Parma (A)", res: "W", cornersTotal: 70, cornersAvg: 5.83 },
+        { name: "Como 1907", ucl: true, lastMatch: "2-0 vs Cagliari (H)", res: "W", cornersTotal: 73, cornersAvg: 6.08 },
+        { name: "Juventus", ucl: false, lastMatch: "4-0 vs Venezia (H)", res: "W", cornersTotal: 94, cornersAvg: 7.83 },
+        { name: "Frosinone", ucl: false, lastMatch: "1-5 vs AC Milan (A)", res: "L", cornersTotal: 77, cornersAvg: 6.42 },
+        { name: "Bologna", ucl: false, lastMatch: "1-1 vs Udinese (H)", res: "D", cornersTotal: 55, cornersAvg: 4.58 },
+        { name: "Fiorentina", ucl: false, lastMatch: "0-3 vs Monza (A)", res: "L", cornersTotal: 54, cornersAvg: 4.50 },
+        { name: "Lazio", ucl: false, lastMatch: "3-0 vs Lecce (H)", res: "W", cornersTotal: 53, cornersAvg: 4.42 },
+        { name: "Udinese", ucl: false, lastMatch: "1-1 vs Bologna (A)", res: "D", cornersTotal: 52, cornersAvg: 4.33 },
+        { name: "Lecce", ucl: false, lastMatch: "0-3 vs Lazio (A)", res: "L", cornersTotal: 50, cornersAvg: 4.17 },
+        { name: "Genoa", ucl: false, lastMatch: "2-0 vs Sassuolo (A)", res: "W", cornersTotal: 45, cornersAvg: 3.75 },
+        { name: "AC Monza", ucl: false, lastMatch: "3-0 vs Fiorentina (H)", res: "W", cornersTotal: 45, cornersAvg: 3.75 },
+        { name: "Atalanta", ucl: false, lastMatch: "4-4 vs Inter Milan (H)", res: "D", cornersTotal: 44, cornersAvg: 3.67 },
+        { name: "Venezia", ucl: false, lastMatch: "0-4 vs Juventus (A)", res: "L", cornersTotal: 43, cornersAvg: 3.58 },
+        { name: "Cagliari", ucl: false, lastMatch: "0-2 vs Como 1907 (A)", res: "L", cornersTotal: 42, cornersAvg: 3.50 },
+        { name: "Sassuolo", ucl: false, lastMatch: "0-2 vs Genoa (H)", res: "L", cornersTotal: 42, cornersAvg: 3.50 },
+        { name: "Torino", ucl: false, lastMatch: "0-1 vs Napoli (A)", res: "L", cornersTotal: 42, cornersAvg: 3.50 },
+        { name: "Parma", ucl: false, lastMatch: "1-5 vs AS Roma (H)", res: "L", cornersTotal: 35, cornersAvg: 2.92 },
+        { name: "AC Milan", ucl: false, lastMatch: "5-1 vs Frosinone (H)", res: "W", cornersTotal: 30, cornersAvg: 2.50 }
+      ]
+    },
+    {
+      id: "ligue1",
+      name: "France Ligue 1",
+      country: "France",
+      flag: "🇫🇷",
+      matchday: "Matchweek 11 (Nov 20–22, 2026)",
+      teams: [
+        { name: "Paris Saint-Germain", ucl: true, lastMatch: "3-2 vs OGC Nice (A)", res: "W", cornersTotal: 55, cornersAvg: 5.00 },
+        { name: "RC Lens", ucl: true, lastMatch: "1-1 vs Toulouse (H)", res: "D", cornersTotal: 58, cornersAvg: 5.27 },
+        { name: "LOSC Lille", ucl: true, lastMatch: "0-1 vs Lyon (H)", res: "L", cornersTotal: 36, cornersAvg: 3.27 },
+        { name: "Angers SCO", ucl: false, lastMatch: "0-4 vs Paris FC (A)", res: "L", cornersTotal: 60, cornersAvg: 5.45 },
+        { name: "Stade Rennais", ucl: false, lastMatch: "1-1 vs FC Lorient (A)", res: "D", cornersTotal: 57, cornersAvg: 5.18 },
+        { name: "ES Troyes AC", ucl: false, lastMatch: "3-1 vs Le Havre (H)", res: "W", cornersTotal: 57, cornersAvg: 5.18 },
+        { name: "OGC Nice", ucl: false, lastMatch: "2-3 vs PSG (H)", res: "L", cornersTotal: 55, cornersAvg: 5.00 },
+        { name: "Le Havre AC", ucl: false, lastMatch: "1-3 vs Troyes (A)", res: "L", cornersTotal: 53, cornersAvg: 4.82 },
+        { name: "AJ Auxerre", ucl: false, lastMatch: "1-1 vs AS Monaco (A)", res: "D", cornersTotal: 47, cornersAvg: 4.27 },
+        { name: "Olympique Lyonnais", ucl: false, lastMatch: "1-0 vs Lille (A)", res: "W", cornersTotal: 46, cornersAvg: 4.18 },
+        { name: "Olympique Marseille", ucl: false, lastMatch: "2-3 vs Le Mans FC (H)", res: "L", cornersTotal: 45, cornersAvg: 4.09 },
+        { name: "Toulouse FC", ucl: false, lastMatch: "1-1 vs RC Lens (A)", res: "D", cornersTotal: 43, cornersAvg: 3.91 },
+        { name: "AS Monaco", ucl: false, lastMatch: "1-1 vs Auxerre (H)", res: "D", cornersTotal: 41, cornersAvg: 3.73 },
+        { name: "Stade Brestois 29", ucl: false, lastMatch: "1-0 vs Strasbourg (A)", res: "W", cornersTotal: 40, cornersAvg: 3.64 },
+        { name: "Paris FC", ucl: false, lastMatch: "4-0 vs Angers SCO (H)", res: "W", cornersTotal: 36, cornersAvg: 3.27 },
+        { name: "FC Lorient", ucl: false, lastMatch: "1-1 vs Rennes (H)", res: "D", cornersTotal: 33, cornersAvg: 3.00 },
+        { name: "Le Mans FC", ucl: false, lastMatch: "3-2 vs Marseille (A)", res: "W", cornersTotal: 30, cornersAvg: 2.73 },
+        { name: "RC Strasbourg", ucl: false, lastMatch: "0-1 vs Brest (H)", res: "L", cornersTotal: 25, cornersAvg: 2.27 }
+      ]
+    },
+    {
+      id: "bundesliga",
+      name: "German Bundesliga",
+      country: "Germany",
+      flag: "🇩🇪",
+      matchday: "Matchday 10 (Nov 20–22, 2026)",
+      teams: [
+        { name: "Bayern München", ucl: true, lastMatch: "1-1 vs 1. FC Köln (H)", res: "D", cornersTotal: 82, cornersAvg: 8.20 },
+        { name: "Borussia Dortmund", ucl: true, lastMatch: "1-0 vs M'gladbach (A)", res: "W", cornersTotal: 50, cornersAvg: 5.00 },
+        { name: "RB Leipzig", ucl: true, lastMatch: "5-1 vs Union Berlin (A)", res: "W", cornersTotal: 46, cornersAvg: 4.60 },
+        { name: "VfB Stuttgart", ucl: true, lastMatch: "0-0 vs Schalke 04 (A)", res: "D", cornersTotal: 53, cornersAvg: 5.30 },
+        { name: "Bayer Leverkusen", ucl: false, lastMatch: "4-0 vs SC Paderborn (H)", res: "W", cornersTotal: 65, cornersAvg: 6.50 },
+        { name: "TSG Hoffenheim", ucl: false, lastMatch: "0-1 vs Frankfurt (A)", res: "L", cornersTotal: 55, cornersAvg: 5.50 },
+        { name: "1. FSV Mainz 05", ucl: false, lastMatch: "1-3 vs FC Augsburg (A)", res: "L", cornersTotal: 53, cornersAvg: 5.30 },
+        { name: "1. FC Köln", ucl: false, lastMatch: "1-1 vs Bayern München (A)", res: "D", cornersTotal: 50, cornersAvg: 5.00 },
+        { name: "Borussia M'gladbach", ucl: false, lastMatch: "0-1 vs Dortmund (H)", res: "L", cornersTotal: 48, cornersAvg: 4.80 },
+        { name: "Eintracht Frankfurt", ucl: false, lastMatch: "1-0 vs Hoffenheim (H)", res: "W", cornersTotal: 45, cornersAvg: 4.50 },
+        { name: "FC Augsburg", ucl: false, lastMatch: "3-1 vs Mainz 05 (H)", res: "W", cornersTotal: 44, cornersAvg: 4.40 },
+        { name: "SC Freiburg", ucl: false, lastMatch: "1-0 vs SV Elversberg (A)", res: "W", cornersTotal: 43, cornersAvg: 4.30 },
+        { name: "SC Paderborn 07", ucl: false, lastMatch: "0-4 vs Leverkusen (A)", res: "L", cornersTotal: 41, cornersAvg: 4.10 },
+        { name: "Werder Bremen", ucl: false, lastMatch: "4-0 vs Hamburger SV (H)", res: "W", cornersTotal: 40, cornersAvg: 4.00 },
+        { name: "SV Elversberg", ucl: false, lastMatch: "0-1 vs SC Freiburg (H)", res: "L", cornersTotal: 39, cornersAvg: 3.90 },
+        { name: "Hamburger SV", ucl: false, lastMatch: "0-4 vs Werder Bremen (A)", res: "L", cornersTotal: 37, cornersAvg: 3.70 },
+        { name: "FC Schalke 04", ucl: false, lastMatch: "0-0 vs VfB Stuttgart (H)", res: "D", cornersTotal: 30, cornersAvg: 3.00 },
+        { name: "1. FC Union Berlin", ucl: false, lastMatch: "1-5 vs RB Leipzig (H)", res: "L", cornersTotal: 28, cornersAvg: 2.80 }
+      ]
+    },
+    {
+      id: "austria",
+      name: "Austrian Bundesliga",
+      country: "Austria",
+      flag: "🇦🇹",
+      matchday: "Round 13 (Nov 21–22, 2026)",
+      teams: [
+        { name: "LASK", ucl: true, lastMatch: "2-1 vs TSV Hartberg (H)", res: "W", cornersTotal: 78, cornersAvg: 6.00 },
+        { name: "SK Sturm Graz", ucl: false, lastMatch: "0-1 vs SCR Altach (A)", res: "L", cornersTotal: 76, cornersAvg: 5.85 },
+        { name: "Red Bull Salzburg", ucl: false, lastMatch: "0-1 vs Austria Wien (A)", res: "L", cornersTotal: 66, cornersAvg: 5.08 },
+        { name: "WSG Tirol", ucl: false, lastMatch: "0-1 vs Austria Lustenau (H)", res: "L", cornersTotal: 57, cornersAvg: 4.38 },
+        { name: "SK Rapid Wien", ucl: false, lastMatch: "3-0 vs Grazer AK (A)", res: "W", cornersTotal: 56, cornersAvg: 4.31 },
+        { name: "SC Austria Lustenau", ucl: false, lastMatch: "1-0 vs WSG Tirol (A)", res: "W", cornersTotal: 52, cornersAvg: 4.00 },
+        { name: "FK Austria Wien", ucl: false, lastMatch: "1-0 vs RB Salzburg (H)", res: "W", cornersTotal: 51, cornersAvg: 3.92 },
+        { name: "SV Ried", ucl: false, lastMatch: "2-1 vs Wolfsberger AC (A)", res: "W", cornersTotal: 49, cornersAvg: 3.77 },
+        { name: "Wolfsberger AC", ucl: false, lastMatch: "1-2 vs SV Ried (H)", res: "L", cornersTotal: 47, cornersAvg: 3.62 },
+        { name: "SCR Altach", ucl: false, lastMatch: "1-0 vs Sturm Graz (H)", res: "W", cornersTotal: 45, cornersAvg: 3.46 },
+        { name: "Grazer AK", ucl: false, lastMatch: "0-3 vs Rapid Wien (H)", res: "L", cornersTotal: 43, cornersAvg: 3.31 },
+        { name: "TSV Hartberg", ucl: false, lastMatch: "1-2 vs LASK (A)", res: "L", cornersTotal: 38, cornersAvg: 2.92 }
+      ]
+    },
+    {
+      id: "portugal",
+      name: "Portugal Primeira Liga",
+      country: "Portugal",
+      flag: "🇵🇹",
+      matchday: "Matchday 11 (Nov 6–8, 2026)",
+      teams: [
+        { name: "Sporting CP", ucl: true, lastMatch: "1-0 vs Moreirense (H)", res: "W", cornersTotal: 74, cornersAvg: 6.73 },
+        { name: "FC Porto", ucl: true, lastMatch: "2-1 vs Vitória SC (A)", res: "W", cornersTotal: 71, cornersAvg: 6.45 },
+        { name: "SL Benfica", ucl: false, lastMatch: "3-2 vs Estrela Amadora (A)", res: "W", cornersTotal: 69, cornersAvg: 6.27 },
+        { name: "SC Braga", ucl: false, lastMatch: "1-0 vs Rio Ave (A)", res: "W", cornersTotal: 64, cornersAvg: 5.82 },
+        { name: "Vitória SC", ucl: false, lastMatch: "1-2 vs FC Porto (H)", res: "L", cornersTotal: 58, cornersAvg: 5.27 },
+        { name: "FC Famalicão", ucl: false, lastMatch: "1-0 vs FC Arouca (H)", res: "W", cornersTotal: 55, cornersAvg: 5.00 },
+        { name: "Gil Vicente", ucl: false, lastMatch: "2-1 vs Santa Clara (A)", res: "W", cornersTotal: 52, cornersAvg: 4.73 },
+        { name: "Moreirense", ucl: false, lastMatch: "0-1 vs Sporting CP (A)", res: "L", cornersTotal: 49, cornersAvg: 4.45 },
+        { name: "Casa Pia AC", ucl: false, lastMatch: "1-1 vs FC Alverca (A)", res: "D", cornersTotal: 48, cornersAvg: 4.36 },
+        { name: "Rio Ave", ucl: false, lastMatch: "0-1 vs SC Braga (H)", res: "L", cornersTotal: 46, cornersAvg: 4.18 },
+        { name: "CD Santa Clara", ucl: false, lastMatch: "1-2 vs Gil Vicente (H)", res: "L", cornersTotal: 45, cornersAvg: 4.09 },
+        { name: "GD Estoril Praia", ucl: false, lastMatch: "Postponed vs Marítimo", res: "D", cornersTotal: 43, cornersAvg: 4.30 },
+        { name: "CD Nacional", ucl: false, lastMatch: "1-0 vs Académico Viseu (H)", res: "W", cornersTotal: 42, cornersAvg: 3.82 },
+        { name: "FC Alverca", ucl: false, lastMatch: "1-1 vs Casa Pia AC (H)", res: "D", cornersTotal: 41, cornersAvg: 3.73 },
+        { name: "Estrela da Amadora", ucl: false, lastMatch: "2-3 vs SL Benfica (H)", res: "L", cornersTotal: 40, cornersAvg: 3.64 },
+        { name: "FC Arouca", ucl: false, lastMatch: "0-1 vs Famalicão (A)", res: "L", cornersTotal: 39, cornersAvg: 3.55 },
+        { name: "Académico de Viseu", ucl: false, lastMatch: "0-1 vs CD Nacional (A)", res: "L", cornersTotal: 37, cornersAvg: 3.36 },
+        { name: "CS Marítimo", ucl: false, lastMatch: "Postponed vs Estoril", res: "D", cornersTotal: 35, cornersAvg: 3.50 }
+      ]
+    },
+    {
+      id: "belgium",
+      name: "Belgium Pro League",
+      country: "Belgium",
+      flag: "🇧🇪",
+      matchday: "Matchday 12 (Nov 20–22, 2026)",
+      teams: [
+        { name: "Club Brugge", ucl: true, lastMatch: "5-1 vs KV Mechelen (A)", res: "W", cornersTotal: 92, cornersAvg: 7.67 },
+        { name: "Union Saint-Gilloise", ucl: false, lastMatch: "1-0 vs KV Kortrijk (A)", res: "W", cornersTotal: 73, cornersAvg: 6.08 },
+        { name: "Cercle Brugge", ucl: false, lastMatch: "1-0 vs Westerlo (H)", res: "W", cornersTotal: 67, cornersAvg: 5.58 },
+        { name: "Sint-Truiden", ucl: false, lastMatch: "2-2 vs Charleroi (A)", res: "D", cornersTotal: 67, cornersAvg: 5.58 },
+        { name: "RSC Anderlecht", ucl: false, lastMatch: "1-0 vs OH Leuven (H)", res: "W", cornersTotal: 64, cornersAvg: 5.33 },
+        { name: "Standard Liège", ucl: false, lastMatch: "2-1 vs Lommel SK (A)", res: "W", cornersTotal: 64, cornersAvg: 5.33 },
+        { name: "SK Beveren", ucl: false, lastMatch: "1-0 vs KAA Gent (H)", res: "W", cornersTotal: 61, cornersAvg: 5.08 },
+        { name: "KV Mechelen", ucl: false, lastMatch: "1-5 vs Club Brugge (H)", res: "L", cornersTotal: 60, cornersAvg: 5.00 },
+        { name: "Sporting Charleroi", ucl: false, lastMatch: "2-2 vs Sint-Truiden (H)", res: "D", cornersTotal: 59, cornersAvg: 4.92 },
+        { name: "Royal Antwerp", ucl: false, lastMatch: "2-2 vs Zulte Waregem (A)", res: "D", cornersTotal: 56, cornersAvg: 4.67 },
+        { name: "KRC Genk", ucl: false, lastMatch: "3-0 vs RAAL La Louvière (H)", res: "W", cornersTotal: 54, cornersAvg: 4.50 },
+        { name: "OH Leuven", ucl: false, lastMatch: "0-1 vs Anderlecht (A)", res: "L", cornersTotal: 49, cornersAvg: 4.08 },
+        { name: "KAA Gent", ucl: false, lastMatch: "0-1 vs SK Beveren (A)", res: "L", cornersTotal: 47, cornersAvg: 3.92 },
+        { name: "Lommel SK", ucl: false, lastMatch: "1-2 vs Standard Liège (H)", res: "L", cornersTotal: 46, cornersAvg: 3.83 },
+        { name: "SV Zulte Waregem", ucl: false, lastMatch: "2-2 vs Royal Antwerp (H)", res: "D", cornersTotal: 46, cornersAvg: 3.83 },
+        { name: "RAAL La Louvière", ucl: false, lastMatch: "0-3 vs KRC Genk (A)", res: "L", cornersTotal: 42, cornersAvg: 3.50 },
+        { name: "KVC Westerlo", ucl: false, lastMatch: "0-1 vs Cercle Brugge (A)", res: "L", cornersTotal: 37, cornersAvg: 3.08 },
+        { name: "KV Kortrijk", ucl: false, lastMatch: "0-1 vs Union SG (H)", res: "L", cornersTotal: 35, cornersAvg: 2.92 }
+      ]
+    },
+    {
+      id: "norway",
+      name: "Norway Eliteserien",
+      country: "Norway",
+      flag: "🇳🇴",
+      matchday: "Round 27 of 30 (Nov 20–22, 2026)",
+      teams: [
+        { name: "FK Bodø/Glimt", ucl: true, lastMatch: "4-2 vs Molde FK (A)", res: "W", cornersTotal: 178, cornersAvg: 6.59 },
+        { name: "Viking FK", ucl: true, lastMatch: "2-3 vs Tromsø IL (A)", res: "L", cornersTotal: 164, cornersAvg: 6.07 },
+        { name: "SK Brann", ucl: false, lastMatch: "4-3 vs KFUM Oslo (A)", res: "W", cornersTotal: 159, cornersAvg: 5.89 },
+        { name: "Rosenborg BK", ucl: false, lastMatch: "2-2 vs Aalesunds FK (A)", res: "D", cornersTotal: 152, cornersAvg: 5.63 },
+        { name: "Molde FK", ucl: false, lastMatch: "2-4 vs Bodø/Glimt (H)", res: "L", cornersTotal: 149, cornersAvg: 5.52 },
+        { name: "Lillestrøm SK", ucl: false, lastMatch: "2-0 vs Sarpsborg 08 (A)", res: "W", cornersTotal: 144, cornersAvg: 5.33 },
+        { name: "Tromsø IL", ucl: false, lastMatch: "3-2 vs Viking FK (H)", res: "W", cornersTotal: 138, cornersAvg: 5.11 },
+        { name: "Vålerenga", ucl: false, lastMatch: "1-2 vs IK Start (H)", res: "L", cornersTotal: 135, cornersAvg: 5.00 },
+        { name: "Fredrikstad FK", ucl: false, lastMatch: "0-0 vs HamKam (A)", res: "D", cornersTotal: 131, cornersAvg: 4.85 },
+        { name: "Sarpsborg 08", ucl: false, lastMatch: "0-2 vs Lillestrøm (H)", res: "L", cornersTotal: 127, cornersAvg: 4.70 },
+        { name: "Sandefjord", ucl: false, lastMatch: "2-2 vs Kristiansund (A)", res: "D", cornersTotal: 122, cornersAvg: 4.52 },
+        { name: "KFUM Oslo", ucl: false, lastMatch: "3-4 vs SK Brann (H)", res: "L", cornersTotal: 118, cornersAvg: 4.37 },
+        { name: "HamKam", ucl: false, lastMatch: "0-0 vs Fredrikstad (H)", res: "D", cornersTotal: 114, cornersAvg: 4.22 },
+        { name: "Kristiansund BK", ucl: false, lastMatch: "2-2 vs Sandefjord (H)", res: "D", cornersTotal: 111, cornersAvg: 4.11 },
+        { name: "IK Start", ucl: false, lastMatch: "2-1 vs Vålerenga (A)", res: "W", cornersTotal: 108, cornersAvg: 4.00 },
+        { name: "Aalesunds FK", ucl: false, lastMatch: "2-2 vs Rosenborg (H)", res: "D", cornersTotal: 103, cornersAvg: 3.81 }
+      ]
+    },
+    {
+      id: "eredivisie",
+      name: "Netherlands Eredivisie",
+      country: "Netherlands",
+      flag: "🇳🇱",
+      matchday: "Matchday 13 (Nov 21–22, 2026)",
+      teams: [
+        { name: "PSV Eindhoven", ucl: true, lastMatch: "4-1 vs NEC Nijmegen (A)", res: "W", cornersTotal: 80, cornersAvg: 6.15 },
+        { name: "Feyenoord", ucl: true, lastMatch: "2-3 vs Excelsior (H)", res: "L", cornersTotal: 71, cornersAvg: 5.46 },
+        { name: "AZ Alkmaar", ucl: false, lastMatch: "5-1 vs Sparta Rotterdam (A)", res: "W", cornersTotal: 90, cornersAvg: 6.92 },
+        { name: "FC Twente", ucl: false, lastMatch: "2-1 vs Willem II (H)", res: "W", cornersTotal: 87, cornersAvg: 6.69 },
+        { name: "NEC Nijmegen", ucl: false, lastMatch: "1-4 vs PSV (H)", res: "L", cornersTotal: 83, cornersAvg: 6.38 },
+        { name: "Sparta Rotterdam", ucl: false, lastMatch: "1-5 vs AZ Alkmaar (H)", res: "L", cornersTotal: 72, cornersAvg: 5.54 },
+        { name: "AFC Ajax", ucl: false, lastMatch: "3-0 vs ADO Den Haag (H)", res: "W", cornersTotal: 70, cornersAvg: 5.38 },
+        { name: "Go Ahead Eagles", ucl: false, lastMatch: "0-1 vs Fortuna Sittard (H)", res: "L", cornersTotal: 63, cornersAvg: 4.85 },
+        { name: "SC Heerenveen", ucl: false, lastMatch: "3-1 vs FC Groningen (A)", res: "W", cornersTotal: 57, cornersAvg: 4.38 },
+        { name: "PEC Zwolle", ucl: false, lastMatch: "3-1 vs SC Telstar (A)", res: "W", cornersTotal: 56, cornersAvg: 4.31 },
+        { name: "FC Utrecht", ucl: false, lastMatch: "2-3 vs SC Cambuur (H)", res: "L", cornersTotal: 53, cornersAvg: 4.08 },
+        { name: "SC Telstar", ucl: false, lastMatch: "1-3 vs PEC Zwolle (H)", res: "L", cornersTotal: 52, cornersAvg: 4.00 },
+        { name: "Willem II", ucl: false, lastMatch: "1-2 vs FC Twente (A)", res: "L", cornersTotal: 51, cornersAvg: 3.92 },
+        { name: "FC Groningen", ucl: false, lastMatch: "1-3 vs Heerenveen (H)", res: "L", cornersTotal: 48, cornersAvg: 3.69 },
+        { name: "SC Cambuur", ucl: false, lastMatch: "3-2 vs FC Utrecht (A)", res: "W", cornersTotal: 47, cornersAvg: 3.62 },
+        { name: "ADO Den Haag", ucl: false, lastMatch: "0-3 vs AFC Ajax (A)", res: "L", cornersTotal: 46, cornersAvg: 3.54 },
+        { name: "Excelsior Rotterdam", ucl: false, lastMatch: "3-2 vs Feyenoord (A)", res: "W", cornersTotal: 46, cornersAvg: 3.54 },
+        { name: "Fortuna Sittard", ucl: false, lastMatch: "1-0 vs Go Ahead Eagles (A)", res: "W", cornersTotal: 32, cornersAvg: 2.46 }
+      ]
+    }
+  ];
+
+  let activeLeague = "all";
+  let onlyUcl = false;
+  let searchQuery = "";
+
+  const tabsEl = document.getElementById("leagueTabs");
+  const containerEl = document.getElementById("leaguesContainer");
+  const summaryEl = document.getElementById("summaryBar");
+  const searchEl = document.getElementById("searchInput");
+  const uclToggleEl = document.getElementById("uclToggle");
+
+  function renderTabs() {
+    const allTab = `<button class="tab-btn ${activeLeague === 'all' ? 'active' : ''}" onclick="setLeague('all')">All 10 Leagues</button>`;
+    const leagueBtns = LEAGUES_DATA.map(l => `
+      <button class="tab-btn ${activeLeague === l.id ? 'active' : ''}" onclick="setLeague('${l.id}')">
+        ${l.flag} ${l.name}
+      </button>
+    `).join("");
+    tabsEl.innerHTML = allTab + leagueBtns;
+  }
+
+  window.setLeague = function(id) {
+    activeLeague = id;
+    renderTabs();
+    renderDashboard();
+  };
+
+  uclToggleEl.addEventListener("click", () => {
+    onlyUcl = !onlyUcl;
+    uclToggleEl.classList.toggle("active-ucl", onlyUcl);
+    renderDashboard();
+  });
+
+  searchEl.addEventListener("input", (e) => {
+    searchQuery = e.target.value.toLowerCase().trim();
+    renderDashboard();
+  });
+
+  function renderDashboard() {
+    let totalTeams = 0;
+    let totalUcl = 0;
+    let topCornerTeam = { name: "-", cornersAvg: 0 };
+
+    const filteredLeagues = LEAGUES_DATA
+      .filter(l => activeLeague === "all" || l.id === activeLeague)
+      .map(league => {
+        const matchedTeams = league.teams.filter(t => {
+          const matchesUcl = !onlyUcl || t.ucl;
+          const matchesSearch =
+            !searchQuery ||
+            t.name.toLowerCase().includes(searchQuery) ||
+            league.name.toLowerCase().includes(searchQuery);
+          return matchesUcl && matchesSearch;
+        });
+        return { ...league, teams: matchedTeams };
+      })
+      .filter(l => l.teams.length > 0);
+
+    filteredLeagues.forEach(l => {
+      l.teams.forEach(t => {
+        totalTeams++;
+        if (t.ucl) totalUcl++;
+        if (t.cornersAvg > topCornerTeam.cornersAvg) {
+          topCornerTeam = t;
+        }
+      });
+    });
+
+    summaryEl.innerHTML = `
+      <div class="stat-box">
+        <div class="stat-label">Leagues Shown</div>
+        <div class="stat-value">${filteredLeagues.length}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Teams Featured</div>
+        <div class="stat-value">${totalTeams}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">26/27 UCL Clubs</div>
+        <div class="stat-value" style="color: var(--ucl-gold);">${totalUcl}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Top Corner Avg</div>
+        <div class="stat-value" style="color: #c4b5fd;">${topCornerTeam.name} (${topCornerTeam.cornersAvg}/m)</div>
+      </div>
+    `;
+
+    if (filteredLeagues.length === 0) {
+      containerEl.innerHTML = `<p style="text-align:center; color:var(--text-muted); margin-top:3rem;">No teams match your current filters.</p>`;
+      return;
+    }
+
+    containerEl.innerHTML = filteredLeagues.map(league => `
+      <section class="league-section">
+        <div class="league-header">
+          <div class="league-title">${league.flag} ${league.name} <span style="font-size:0.8rem; color:var(--text-muted); font-weight:500;">(${league.teams.length} teams)</span></div>
+          <div class="league-meta">${league.matchday}</div>
+        </div>
+        <div class="team-grid">
+          ${league.teams.map(team => `
+            <div class="team-card ${team.ucl ? 'ucl-team' : ''}">
+              <div class="card-top">
+                <div class="team-name">${team.name}</div>
+                ${team.ucl ? `<span class="ucl-tag">★ UCL 26/27</span>` : ``}
+              </div>
+              <div class="match-box">
+                <div class="match-row">
+                  <span>Last: <strong>${team.lastMatch}</strong></span>
+                  <span class="outcome-pill outcome-${team.res}">${team.res}</span>
+                </div>
+              </div>
+              <div class="corner-box">
+                <span class="corner-label">26/27 Corners Taken</span>
+                <div class="corner-stats">
+                  <span>${team.cornersTotal} total</span>
+                  <span class="corner-pill">${team.cornersAvg} / match</span>
+                </div>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </section>
+    `).join("");
+  }
+
+  renderTabs();
+  renderDashboard();
+</script>
+</body>
+</html>
